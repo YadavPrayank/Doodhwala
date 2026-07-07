@@ -176,6 +176,7 @@ export default function OwnerDashboard({ user, onLogout }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 15, fontWeight: 700, color: C.navy }}>{c.name}</div>
                   {c.is_new && <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: C.amber, background: C.amberLight, padding: '2px 8px', borderRadius: 999 }}>New</span>}
+                  {requests.find(r => r.customer_id === c.id && r.status === 'pending') && <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: C.amber, background: C.amberLight, padding: '2px 8px', borderRadius: 999 }}>⚠️ Approval needed</span>}
                   {c.balance <= 2 && c.balance > 0 && <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: C.amber, background: C.amberLight, padding: '2px 8px', borderRadius: 999 }}>Low</span>}
                   {c.balance <= 0 && c.total_assigned > 0 && <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: C.red, background: '#FDECEA', padding: '2px 8px', borderRadius: 999 }}>Empty</span>}
                 </div>
@@ -320,7 +321,34 @@ async function topUpBalance() {
     setNewBalance('');
     setSaving(false);
   }
+async function handleRequestAction(requestId, status) {
+    await supabase.from('daily_requests').update({ status }).eq('id', requestId);
 
+    // Notify customer
+    await supabase.from('notifications').insert({
+      shop_code: c.shop_code,
+      target_role: 'customer',
+      target_id: c.id,
+      title: status === 'confirmed' ? '✅ Request approved!' : '❌ Request declined',
+      body: status === 'confirmed'
+        ? `Your request has been approved by the owner. Delivery will proceed tomorrow.`
+        : `Your request was declined by the owner. Please contact them for more details.`,
+    });
+
+    // Refresh request
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await supabase
+      .from('daily_requests')
+      .select('*')
+      .eq('customer_id', c.id)
+      .eq('date', today)
+      .maybeSingle();
+
+    if (data) {
+      // Force re-render by updating parent
+      onBack();
+    }
+  }
   const balance = customerData.balance || 0;
   const totalAssigned = customerData.total_assigned || 0;
   const used = totalAssigned - balance;
@@ -381,13 +409,58 @@ async function topUpBalance() {
           <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: C.navy, marginTop: 6 }}>📍 {c.address}</div>
         </div>
 
-        {/* Today's request */}
-        <div style={{ background: C.white, borderRadius: 18, padding: 18, border: `1px solid ${C.border}` }}>
+      {/* Today's request */}
+        <div style={{ background: C.white, borderRadius: 18, padding: 18, border: `1px solid ${request?.status === 'pending' ? C.amber : C.border}` }}>
           <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: C.steel, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>Today's request</div>
           {request ? (
             <div>
-              <div style={{ fontFamily: 'DM Mono', fontSize: 32, fontWeight: 700, color: C.green }}>{request.litres}L</div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: C.steel, marginTop: 4 }}>{request.product}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div>
+                  <div style={{ fontFamily: 'DM Mono', fontSize: 32, fontWeight: 700, color: C.green }}>{request.litres}L</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: C.steel, marginTop: 4 }}>{request.product}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  {request.status === 'pending' && (
+                    <span style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: C.amber, background: C.amberLight, padding: '4px 10px', borderRadius: 999 }}>
+                      Needs approval
+                    </span>
+                  )}
+                  {request.status === 'confirmed' && (
+                    <span style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: C.green, background: C.greenLight, padding: '4px 10px', borderRadius: 999 }}>
+                      Confirmed
+                    </span>
+                  )}
+                  {request.status === 'declined' && (
+                    <span style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: C.red, background: '#FDECEA', padding: '4px 10px', borderRadius: 999 }}>
+                      Declined
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {request.status === 'pending' && (
+                <div style={{ marginTop: 12, padding: 14, background: C.amberLight, borderRadius: 12, border: `1px solid ${C.amber}30` }}>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: C.navy, marginBottom: 12 }}>
+                    ⚠️ Customer requested <b>{request.litres}L</b> but only has <b>{customerData.balance}L</b> remaining. Approve to allow delivery anyway?
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={() => handleRequestAction(request.id, 'confirmed')} style={{
+                      flex: 1, padding: '12px', background: C.green, color: C.white,
+                      border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
+                      fontFamily: 'DM Sans', cursor: 'pointer',
+                    }}>
+                      ✓ Approve
+                    </button>
+                    <button onClick={() => handleRequestAction(request.id, 'declined')} style={{
+                      flex: 1, padding: '12px', background: C.red, color: C.white,
+                      border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
+                      fontFamily: 'DM Sans', cursor: 'pointer',
+                    }}>
+                      ✗ Decline
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: C.steel }}>No request yet for today</div>

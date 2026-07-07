@@ -184,14 +184,23 @@ export default function CustomerHome({ user, onLogout }) {
           )}
         </div>
 
-        {/* Today's confirmed request */}
+      {/* Today's confirmed request */}
         {todayRequest && (
-          <div style={{ background: C.white, borderRadius: 20, padding: 20, border: `1px solid ${C.border}` }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: C.steel, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Tomorrow's delivery</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <div style={{ fontFamily: 'DM Mono', fontSize: 40, fontWeight: 700, color: C.navy }}>{todayRequest.litres}L</div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 15, color: C.steel }}>{todayRequest.product} · Confirmed ✓</div>
+          <div style={{ background: todayRequest.status === 'declined' ? '#FDECEA' : todayRequest.status === 'pending' ? C.amberLight : C.navy, borderRadius: 20, padding: 24 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: todayRequest.status === 'declined' ? C.red : todayRequest.status === 'pending' ? C.amber : 'rgba(255,255,255,0.45)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
+              {todayRequest.status === 'declined' ? 'Request declined' : todayRequest.status === 'pending' ? 'Waiting for approval' : "Tomorrow's delivery"}
             </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <div style={{ fontFamily: 'DM Mono', fontSize: 40, fontWeight: 700, color: todayRequest.status === 'declined' ? C.red : todayRequest.status === 'pending' ? C.amber : C.white }}>{todayRequest.litres}L</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 15, color: todayRequest.status === 'declined' ? C.red : todayRequest.status === 'pending' ? C.amber : 'rgba(255,255,255,0.55)' }}>
+                {todayRequest.product} · {todayRequest.status === 'declined' ? 'Declined ✗' : todayRequest.status === 'pending' ? 'Pending ⏳' : 'Confirmed ✓'}
+              </div>
+            </div>
+            {todayRequest.status === 'declined' && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: C.red, marginTop: 10 }}>
+                Your request was declined. Please contact your owner to top up your balance.
+              </div>
+            )}
           </div>
         )}
 

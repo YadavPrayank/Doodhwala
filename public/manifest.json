@@ -1,6 +1,6 @@
 {
-  "short_name": "Doodhwala",
-  "name": "Doodhwala - Digital Milk Delivery",
+  "short_name": "Dairy Tracker",
+  "name": "Dairy Tracker - Milk Delivery App",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,16 +10,20 @@
     {
       "src": "logo192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "logo512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
+  "orientation": "portrait",
   "theme_color": "#2E7D5E",
-  "background_color": "#0F1F2E"
+  "background_color": "#0F1F2E",
+  "description": "Digital milk delivery tracking for dairy shops"
 }

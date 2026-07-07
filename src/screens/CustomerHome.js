@@ -67,7 +67,7 @@ export default function CustomerHome({ user, onLogout }) {
     fetchNotifications();
   }
 
-  async function saveRequest() {
+ async function saveRequest() {
     if (!litres || isNaN(litres) || Number(litres) <= 0) {
       setMessage('Enter a valid litre amount.');
       return;
@@ -76,37 +76,50 @@ export default function CustomerHome({ user, onLogout }) {
       setMessage('Enter the milk product name.');
       return;
     }
-    if (Number(litres) > customerData.balance) {
-      setMessage(`You only have ${customerData.balance}L remaining. Request within your balance.`);
-      return;
-    }
     setSaving(true);
     setMessage('');
     const today = new Date().toISOString().split('T')[0];
+    const requestedLitres = Number(litres);
+    const exceedsBalance = requestedLitres > customerData.balance;
+    const status = exceedsBalance ? 'pending' : 'confirmed';
+
     try {
       if (todayRequest) {
         await supabase.from('daily_requests').update({
-          litres: Number(litres),
+          litres: requestedLitres,
           product: product.trim(),
+          status,
         }).eq('id', todayRequest.id);
       } else {
         await supabase.from('daily_requests').insert({
           customer_id: user.id,
           shop_code: user.shop_code,
-          litres: Number(litres),
+          litres: requestedLitres,
           product: product.trim(),
           date: today,
-          status: 'confirmed',
+          status,
         });
       }
-      setMessage('Request saved successfully!');
+
+      // If exceeds balance notify owner for approval
+      if (exceedsBalance) {
+        await supabase.from('notifications').insert({
+          shop_code: user.shop_code,
+          target_role: 'owner',
+          title: '⚠️ Approval needed',
+          body: `${customerData.name} requested ${requestedLitres}L but only has ${customerData.balance}L remaining`,
+        });
+        setMessage('Request sent — waiting for owner approval since it exceeds your balance.');
+      } else {
+        setMessage('Request saved successfully!');
+      }
+
       fetchData();
     } catch (err) {
       setMessage('Something went wrong. Try again.');
     }
     setSaving(false);
   }
-
   const unread = notifications.filter(n => !n.is_read).length;
   const balance = customerData.balance || 0;
   const totalAssigned = customerData.total_assigned || 0;
@@ -125,7 +138,12 @@ export default function CustomerHome({ user, onLogout }) {
       {/* Header */}
       <div style={{ padding: '52px 24px 20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: C.steel }}>Good morning,</div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: C.steel, marginBottom: 8 }}>
+  How many litres? 
+  <span style={{ color: customerData.balance <= 2 ? C.amber : C.green, marginLeft: 6 }}>
+    {customerData.balance}L remaining
+  </span>
+</div>
           <div style={{ fontFamily: 'DM Serif Display', fontSize: 28, color: C.navy }}>{customerData.name}</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>

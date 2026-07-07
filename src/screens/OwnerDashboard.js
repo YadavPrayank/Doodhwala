@@ -239,7 +239,42 @@ export default function OwnerDashboard({ user, onLogout }) {
     </div>
   );
 }
+function BalanceHistoryCard({ customerId }) {
+  const [history, setHistory] = useState([]);
 
+  useEffect(() => {
+    supabase.from('balance_history')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setHistory(data || []));
+  }, [customerId]);
+
+  if (history.length === 0) return null;
+
+  return (
+    <div style={{ background: C.white, borderRadius: 18, padding: 18, border: `1px solid ${C.border}` }}>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: C.steel, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>Balance history</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {history.map((h, i) => (
+          <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.cream, borderRadius: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, fontWeight: 700, color: C.navy }}>
+                {h.previous_balance}L → {h.new_balance}L
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: C.steel, marginTop: 2 }}>
+                {new Date(h.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                {' · '}
+                {new Date(h.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            <div style={{ fontFamily: 'DM Mono', fontSize: 16, fontWeight: 700, color: C.green }}>+{h.new_balance}L</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 function CustomerDetail({ c, workers, requests, onBack, assignWorker, shopCode }) {
   const [newBalance, setNewBalance] = useState('');
   const [topupMsg, setTopupMsg] = useState('');
@@ -248,18 +283,39 @@ function CustomerDetail({ c, workers, requests, onBack, assignWorker, shopCode }
   const request = requests.find(r => r.customer_id === c.id);
   const worker = workers.find(w => w.id === customerData.assigned_worker_id);
 
-  async function topUpBalance() {
+async function topUpBalance() {
     if (!newBalance || isNaN(newBalance) || Number(newBalance) <= 0) {
       setTopupMsg('Enter a valid amount.');
       return;
     }
     setSaving(true);
     const total = Number(newBalance);
+
+    // Save history before updating
+    await supabase.from('balance_history').insert({
+      customer_id: c.id,
+      shop_code: c.shop_code,
+      previous_balance: customerData.balance || 0,
+      new_balance: total,
+      assigned_by: 'Owner',
+    });
+
     const { data } = await supabase.from('customers').update({
       balance: total,
       total_assigned: total,
     }).eq('id', c.id).select().single();
+
     if (data) setCustomerData(data);
+
+    // Notify customer
+    await supabase.from('notifications').insert({
+      shop_code: c.shop_code,
+      target_role: 'customer',
+      target_id: c.id,
+      title: 'Balance updated',
+      body: `Your milk balance has been set to ${total}L by your owner`,
+    });
+
     setTopupMsg('Balance updated successfully!');
     setNewBalance('');
     setSaving(false);
@@ -364,6 +420,8 @@ function CustomerDetail({ c, workers, requests, onBack, assignWorker, shopCode }
       </div>
     </div>
   );
+  {/* Balance history */}
+        <BalanceHistoryCard customerId={c.id} />
 }
 
 function WorkerDetail({ w, customers, requests, onBack, assignWorker }) {
@@ -422,4 +480,5 @@ function WorkerDetail({ w, customers, requests, onBack, assignWorker }) {
       </div>
     </div>
   );
+  
 }

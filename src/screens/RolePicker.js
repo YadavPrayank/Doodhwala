@@ -23,7 +23,7 @@ export default function RolePicker({ onPick }) {
             <path d="M6 2h12" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </div>
-        <div style={{ fontFamily: 'DM Serif Display', fontSize: 38, color: C.white, marginBottom: 8 }}>Doodhwala</div>
+        <div style={{ fontFamily: 'DM Serif Display', fontSize: 38, color: C.white, marginBottom: 8 }}>Dairy Tracker</div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 15, color: 'rgba(255,255,255,0.5)' }}>Digital milk delivery</div>
       </div>
 

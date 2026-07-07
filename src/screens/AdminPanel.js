@@ -64,7 +64,7 @@ export default function AdminPanel({ onClose }) {
       <div style={{ padding: '52px 24px 16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Developer access</div>
-          <div style={{ fontFamily: 'DM Serif Display', fontSize: 28, color: C.white }}>Doodhwala Admin</div>
+          <div style={{ fontFamily: 'DM Serif Display', fontSize: 28, color: C.white }}>Dairy Tracker Admin</div>
         </div>
         <button onClick={onClose} style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.08)', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 16 }}>✕</button>
       </div>

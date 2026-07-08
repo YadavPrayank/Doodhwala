@@ -18,9 +18,6 @@ export default function CustomerLogin({ onLogin }) {
   const [shopCode, setShopCode] = useState('');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
-  const [area, setArea] = useState('');
-  const [building, setBuilding] = useState('');
-  const [flat, setFlat] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -69,18 +66,9 @@ export default function CustomerLogin({ onLogin }) {
     setLoading(true);
     setError('');
 
-   if (!area.trim()) { setError('Enter your area/locality.'); return; }
-    if (!building.trim()) { setError('Enter your building name.'); return; }
-    if (!flat.trim()) { setError('Enter your flat/room number.'); return; }
-
-    const fullAddress = `${flat}, ${building}, ${area}`;
-
     const result = await registerUser(phone, 'customer', shopCode.trim().toUpperCase(), {
       name,
-      address: fullAddress,
-      area: area.trim(),
-      building: building.trim(),
-      flat: flat.trim(),
+      address: address.trim(),
     });
 
     if (!result.success) {
@@ -123,19 +111,13 @@ export default function CustomerLogin({ onLogin }) {
             style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 18, fontFamily: 'DM Mono', textAlign: 'center', letterSpacing: 4, textTransform: 'uppercase', background: C.white }} />
         )}
 
-     {step === 'details' && (
+        {step === 'details' && (
           <>
             <input type="text" placeholder="Your full name" value={name}
               onChange={e => { setName(e.target.value); setError(''); }}
               style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: 'DM Sans', background: C.white }} />
-            <input type="text" placeholder="Area / Locality (e.g. Sector 5, Kharghar)" value={area}
-              onChange={e => { setArea(e.target.value); setError(''); }}
-              style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: 'DM Sans', background: C.white }} />
-            <input type="text" placeholder="Building name (e.g. Sai Niwas)" value={building}
-              onChange={e => { setBuilding(e.target.value); setError(''); }}
-              style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: 'DM Sans', background: C.white }} />
-            <input type="text" placeholder="Flat / Room no. (e.g. B-204, 2nd Floor)" value={flat}
-              onChange={e => { setFlat(e.target.value); setError(''); }}
+            <input type="text" placeholder="Your full address (building, flat, floor, area)" value={address}
+              onChange={e => { setAddress(e.target.value); setError(''); }}
               style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: 'DM Sans', background: C.white }} />
           </>
         )}

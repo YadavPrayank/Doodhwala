@@ -238,34 +238,60 @@ export default function WorkerHome({ user, onLogout }) {
           </div>
         )}
 
-        {stops.map(s => (
-          <button key={s.id} onClick={() => setActiveStop(s)} style={{
-            display: 'flex', alignItems: 'center', gap: 12, background: C.white,
-            border: `1px solid ${C.border}`, borderRadius: 16, padding: '14px 16px',
-            cursor: 'pointer', textAlign: 'left', width: '100%',
-          }}>
-            <div style={{ width: 46, height: 46, borderRadius: 13, background: C.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🥛</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 15, fontWeight: 700, color: C.navy }}>{s.customer.name}</div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: C.steel, marginTop: 2 }}>{s.product}</div>
-            </div>
-            <div style={{ fontFamily: 'DM Mono', fontSize: 20, fontWeight: 700, color: C.green }}>{s.litres}L</div>
-            <span style={{ color: C.steel, marginLeft: 4 }}>→</span>
-          </button>
-        ))}
+     {(() => {
+          // Group stops by building + area
+          const groups = {};
+          stops.forEach(s => {
+            const key = s.customer.building && s.customer.area
+              ? `${s.customer.building} — ${s.customer.area}`
+              : s.customer.address || 'Unknown location';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(s);
+          });
 
-        {delivered.length > 0 && (
+          return Object.entries(groups).map(([groupKey, groupStops]) => (
+            <div key={groupKey}>
+              {/* Building group header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, marginTop: 4 }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: C.steel, letterSpacing: 0.5 }}>🏢 {groupKey}</div>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
+                <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: C.steel }}>{groupStops.length} stop{groupStops.length !== 1 ? 's' : ''}</div>
+              </div>
+
+              {/* Stops in this building */}
+              {groupStops.map(s => (
+                <button key={s.id} onClick={() => setActiveStop(s)} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, background: C.white,
+                  border: `1px solid ${C.border}`, borderRadius: 16, padding: '14px 16px',
+                  cursor: 'pointer', textAlign: 'left', width: '100%', marginBottom: 8,
+                }}>
+                  <div style={{ width: 46, height: 46, borderRadius: 13, background: C.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🥛</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 15, fontWeight: 700, color: C.navy }}>{s.customer.name}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: C.steel, marginTop: 2 }}>{s.customer.flat || s.customer.address}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: C.steel, marginTop: 1 }}>{s.product}</div>
+                  </div>
+                  <div style={{ fontFamily: 'DM Mono', fontSize: 20, fontWeight: 700, color: C.green }}>{s.litres}L</div>
+                  <span style={{ color: C.steel, marginLeft: 4 }}>→</span>
+                </button>
+              ))}
+            </div>
+          ));
+        })()}
+     {delivered.length > 0 && (
           <>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: C.steel, letterSpacing: 1, textTransform: 'uppercase', marginTop: 8 }}>Delivered</div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: C.steel, letterSpacing: 1, textTransform: 'uppercase', marginTop: 8, marginBottom: 8 }}>Delivered</div>
             {delivered.map(s => (
               <div key={s.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12, background: C.white,
-                border: `1px solid ${C.border}`, borderRadius: 16, padding: '14px 16px', opacity: 0.5,
+                border: `1px solid ${C.border}`, borderRadius: 16, padding: '14px 16px',
+                opacity: 0.5, marginBottom: 8,
               }}>
                 <div style={{ width: 46, height: 46, borderRadius: 13, background: C.greenLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>✅</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 15, fontWeight: 700, color: C.navy, textDecoration: 'line-through' }}>{s.customer.name}</div>
-                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: C.steel, marginTop: 2 }}>{s.product}</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: C.steel, marginTop: 2 }}>{s.customer.flat || s.customer.address}</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: C.steel, marginTop: 1 }}>{s.product}</div>
                 </div>
                 <div style={{ fontFamily: 'DM Mono', fontSize: 20, fontWeight: 700, color: C.green }}>{s.litres}L</div>
               </div>

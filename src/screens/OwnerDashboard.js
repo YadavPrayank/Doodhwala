@@ -23,7 +23,9 @@ export default function OwnerDashboard({ user, onLogout }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [openCustomer, setOpenCustomer] = useState(null);
   const [openWorker, setOpenWorker] = useState(null);
-  const [loading, setLoading] = useState(true);
+ const [loading, setLoading] = useState(true);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [workerSearch, setWorkerSearch] = useState('');
 
   useEffect(() => {
     fetchAll();
@@ -163,7 +165,30 @@ export default function OwnerDashboard({ user, onLogout }) {
       </div>
 
       <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {tab === 'customers' && customers.map(c => {
+        {tab === 'customers' && (
+          <>
+            <div style={{ position: 'relative', marginBottom: 12 }}>
+              <input
+                type="text"
+                placeholder="Search customer by name, phone or address..."
+                value={customerSearch}
+                onChange={e => setCustomerSearch(e.target.value)}
+                style={{ width: '100%', padding: '13px 16px 13px 42px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: 'DM Sans', background: C.white, color: C.navy }}
+              />
+              <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18 }}>🔍</span>
+              {customerSearch && (
+                <button onClick={() => setCustomerSearch('')} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: C.steel }}>✕</button>
+              )}
+            </div>
+            {customers
+              .filter(c =>
+                c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+                c.phone.includes(customerSearch) ||
+                (c.address && c.address.toLowerCase().includes(customerSearch.toLowerCase())) ||
+                (c.building && c.building.toLowerCase().includes(customerSearch.toLowerCase())) ||
+                (c.area && c.area.toLowerCase().includes(customerSearch.toLowerCase()))
+              )
+              .map(c => {
           const request = requests.find(r => r.customer_id === c.id);
           const worker = workers.find(w => w.id === c.assigned_worker_id);
           return (
@@ -191,9 +216,32 @@ export default function OwnerDashboard({ user, onLogout }) {
               <span style={{ color: C.steel }}>→</span>
             </button>
           );
+        
         })}
+          </>
+        )}
 
-        {tab === 'workers' && workers.map(w => {
+        {tab === 'workers' && (
+          <>
+            <div style={{ position: 'relative', marginBottom: 12 }}>
+              <input
+                type="text"
+                placeholder="Search worker by name or phone..."
+                value={workerSearch}
+                onChange={e => setWorkerSearch(e.target.value)}
+                style={{ width: '100%', padding: '13px 16px 13px 42px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: 'DM Sans', background: C.white, color: C.navy }}
+              />
+              <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18 }}>🔍</span>
+              {workerSearch && (
+                <button onClick={() => setWorkerSearch('')} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: C.steel }}>✕</button>
+              )}
+            </div>
+            {workers
+              .filter(w =>
+                w.name.toLowerCase().includes(workerSearch.toLowerCase()) ||
+                w.phone.includes(workerSearch)
+              )
+              .map(w => {
           const count = customers.filter(c => c.assigned_worker_id === w.id).length;
           return (
             <button key={w.id} onClick={() => setOpenWorker(w)} style={{
@@ -210,6 +258,8 @@ export default function OwnerDashboard({ user, onLogout }) {
             </button>
           );
         })}
+          </>
+        )}
       </div>
 
       {showNotifs && (

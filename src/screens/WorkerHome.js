@@ -238,22 +238,24 @@ export default function WorkerHome({ user, onLogout }) {
           </div>
         )}
 
-     {(() => {
+ {(() => {
           // Group stops by building + area
           const groups = {};
           stops.forEach(s => {
-            const key = s.customer.building && s.customer.area
-              ? `${s.customer.building} — ${s.customer.area}`
-              : s.customer.address || 'Unknown location';
+            const building = s.customer.building || '';
+            const area = s.customer.area || '';
+            const key = building && area
+              ? `${building}, ${area}`
+              : building || area || s.customer.address || 'Unknown location';
             if (!groups[key]) groups[key] = [];
             groups[key].push(s);
           });
-
           return Object.entries(groups).map(([groupKey, groupStops]) => (
             <div key={groupKey}>
               {/* Building group header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, marginTop: 4 }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, color: C.steel, letterSpacing: 0.5 }}>🏢 {groupKey}</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: C.navy }}>🏢 {groupKey}</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: C.steel, marginTop: 2 }}>{groupStops.length} stop{groupStops.length !== 1 ? 's' : ''} in this building</div>
                 <div style={{ flex: 1, height: 1, background: C.border }} />
                 <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: C.steel }}>{groupStops.length} stop{groupStops.length !== 1 ? 's' : ''}</div>
               </div>
@@ -268,7 +270,9 @@ export default function WorkerHome({ user, onLogout }) {
                   <div style={{ width: 46, height: 46, borderRadius: 13, background: C.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🥛</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: 'DM Sans', fontSize: 15, fontWeight: 700, color: C.navy }}>{s.customer.name}</div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: C.steel, marginTop: 2 }}>{s.customer.flat || s.customer.address}</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: C.steel, marginTop: 2 }}>
+                    {s.customer.flat ? `Flat ${s.customer.flat}` : s.customer.address}
+                  </div>
                     <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: C.steel, marginTop: 1 }}>{s.product}</div>
                   </div>
                   <div style={{ fontFamily: 'DM Mono', fontSize: 20, fontWeight: 700, color: C.green }}>{s.litres}L</div>

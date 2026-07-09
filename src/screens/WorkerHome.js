@@ -240,13 +240,13 @@ export default function WorkerHome({ user, onLogout }) {
 
  {(() => {
           // Group stops by building + area
-          const groups = {};
+        const groups = {};
           stops.forEach(s => {
-            const building = s.customer.building || '';
-            const area = s.customer.area || '';
+            const building = (s.customer.building || '').trim().toLowerCase();
+            const area = (s.customer.area || '').trim().toLowerCase();
             const key = building && area
-              ? `${building}, ${area}`
-              : building || area || s.customer.address || 'Unknown location';
+              ? `${building}||${area}`
+              : building || area || 'unknown';
             if (!groups[key]) groups[key] = [];
             groups[key].push(s);
           });
@@ -254,9 +254,13 @@ export default function WorkerHome({ user, onLogout }) {
             <div key={groupKey}>
               {/* Building group header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, marginTop: 4 }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: C.navy }}>🏢 {groupKey}</div>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: C.steel, marginTop: 2 }}>{groupStops.length} stop{groupStops.length !== 1 ? 's' : ''} in this building</div>
-                <div style={{ flex: 1, height: 1, background: C.border }} />
+               <div style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700, color: C.navy }}>
+                🏢 {groupStops[0].customer.building} — {groupStops[0].customer.area}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: C.steel, marginTop: 2 }}>
+                {groupStops.length} stop{groupStops.length !== 1 ? 's' : ''} in this building
+              </div>
+               <div style={{ flex: 1, height: 1, background: C.border }} />
                 <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: C.steel }}>{groupStops.length} stop{groupStops.length !== 1 ? 's' : ''}</div>
               </div>
 

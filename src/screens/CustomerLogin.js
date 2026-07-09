@@ -120,9 +120,12 @@ export default function CustomerLogin({ onLogin }) {
             style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 18, fontFamily: 'DM Mono', textAlign: 'center', letterSpacing: 4, textTransform: 'uppercase', background: C.white }} />
         )}
 
-        {step === 'details' && (
+      {step === 'details' && (
           <>
-           <input type="text" placeholder="Flat / Room no. (e.g. B-204, 2nd Floor)" value={flat}
+            <input type="text" placeholder="Your full name" value={name}
+              onChange={e => { setName(e.target.value); setError(''); }}
+              style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: 'DM Sans', background: C.white }} />
+            <input type="text" placeholder="Flat / Room no. (e.g. B-204, 2nd Floor)" value={flat}
               onChange={e => { setFlat(e.target.value); setError(''); }}
               style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: 'DM Sans', background: C.white }} />
             <input type="text" placeholder="Building / Society name (e.g. Sai Niwas)" value={building}
@@ -130,7 +133,8 @@ export default function CustomerLogin({ onLogin }) {
               style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: 'DM Sans', background: C.white }} />
             <input type="text" placeholder="Area / Locality (e.g. Sector 5, Kharghar)" value={area}
               onChange={e => { setArea(e.target.value); setError(''); }}
-              style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: 'DM Sans', background: C.white }} /> </>
+              style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: 'DM Sans', background: C.white }} />
+          </>
         )}
 
         {error && (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabase';
-import { checkAndLogin, registerUser } from '../auth';
+import { checkAndLogin, verifyOtp, registerUser } from '../auth';
 
 const C = {
   navy: '#0F1F2E',
@@ -24,22 +24,24 @@ function generateShopCode() {
 }
 
 export default function OwnerLogin({ onLogin }) {
-  const [step, setStep] = useState('phone');
-  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState('email');
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [shopName, setShopName] = useState('');
   const [ownerName, setOwnerName] = useState('');
+  const [isNew, setIsNew] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function checkPhone() {
-    if (phone.replace(/\D/g, '').length < 10) {
-      setError('Enter a valid 10-digit phone number.');
+  async function checkEmail() {
+    if (!email.trim() || !email.includes('@')) {
+      setError('Enter a valid email address.');
       return;
     }
     setLoading(true);
     setError('');
 
-    const result = await checkAndLogin(phone, 'owner');
+    const result = await checkAndLogin(email, 'owner');
 
     if (!result.success) {
       setError(result.error);
@@ -48,10 +50,31 @@ export default function OwnerLogin({ onLogin }) {
     }
 
     if (result.user) {
-      onLogin('owner', result.user);
+      // Existing user — OTP sent
+      setIsNew(false);
+      setStep('otp');
     } else {
+      // New user
+      setIsNew(true);
       setStep('details');
     }
+    setLoading(false);
+  }
+
+  async function checkOtp() {
+    if (otp.length !== 6) { setError('Enter the 6-digit code.'); return; }
+    setLoading(true);
+    setError('');
+
+    const result = await verifyOtp(email, otp, 'owner');
+
+    if (!result.success) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+
+    onLogin('owner', result.user);
     setLoading(false);
   }
 
@@ -61,9 +84,29 @@ export default function OwnerLogin({ onLogin }) {
     setLoading(true);
     setError('');
 
-    const shopCode = generateShopCode();
+    // Send OTP first
+    const { error: otpError } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase() });
+    if (otpError) { setError('Failed to send OTP. Try again.'); setLoading(false); return; }
 
-    const result = await registerUser(phone, 'owner', shopCode, {
+    setStep('otp_register');
+    setLoading(false);
+  }
+
+  async function verifyAndRegister() {
+    if (otp.length !== 6) { setError('Enter the 6-digit code.'); return; }
+    setLoading(true);
+    setError('');
+
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: otp,
+      type: 'email',
+    });
+
+    if (verifyError) { setError('Wrong code. Try again.'); setLoading(false); return; }
+
+    const shopCode = generateShopCode();
+    const result = await registerUser(email, 'owner', shopCode, {
       name: ownerName,
       shop_name: shopName,
       shop_code: shopCode,
@@ -85,17 +128,21 @@ export default function OwnerLogin({ onLogin }) {
 
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontFamily: 'DM Serif Display', fontSize: 30, color: C.navy, marginBottom: 6 }}>
-          {step === 'phone' ? 'Owner login' : 'Set up your shop'}
+          {step === 'email' && 'Owner login'}
+          {step === 'details' && 'Set up your shop'}
+          {(step === 'otp' || step === 'otp_register') && 'Check your email'}
         </div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: C.steel }}>
-          {step === 'phone' ? 'Enter your phone number to continue.' : 'Tell us about your dairy shop.'}
+          {step === 'email' && 'Enter your email address to continue.'}
+          {step === 'details' && 'Tell us about your dairy shop.'}
+          {(step === 'otp' || step === 'otp_register') && `We sent a 6-digit code to ${email}`}
         </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {step === 'phone' && (
-          <input type="tel" placeholder="Phone number" value={phone}
-            onChange={e => { setPhone(e.target.value); setError(''); }}
+        {step === 'email' && (
+          <input type="email" placeholder="Email address" value={email}
+            onChange={e => { setEmail(e.target.value); setError(''); }}
             style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: 'DM Sans', background: C.white }} />
         )}
 
@@ -110,17 +157,23 @@ export default function OwnerLogin({ onLogin }) {
           </>
         )}
 
-        {error && (
-          <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: C.amber }}>{error}</div>
+        {(step === 'otp' || step === 'otp_register') && (
+          <input type="tel" inputMode="numeric" placeholder="6-digit code" value={otp} maxLength={6}
+            onChange={e => { setOtp(e.target.value.replace(/\D/g, '')); setError(''); }}
+            style={{ padding: '16px', borderRadius: 14, border: `1.5px solid ${C.border}`, fontSize: 24, fontFamily: 'DM Mono', textAlign: 'center', letterSpacing: 8, background: C.white }} />
         )}
 
-        <button onClick={step === 'phone' ? checkPhone : createShop} disabled={loading}
+        {error && <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: C.amber }}>{error}</div>}
+
+        <button
+          onClick={step === 'email' ? checkEmail : step === 'details' ? createShop : step === 'otp' ? checkOtp : verifyAndRegister}
+          disabled={loading}
           style={{ padding: '16px', background: C.green, color: C.white, border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 700, fontFamily: 'DM Sans', cursor: 'pointer', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'Please wait...' : step === 'phone' ? 'Continue' : 'Create shop'}
+          {loading ? 'Please wait...' : step === 'email' ? 'Continue' : step === 'details' ? 'Send verification code' : 'Verify & continue'}
         </button>
 
-        {step !== 'phone' && (
-          <button onClick={() => { setStep('phone'); setError(''); }}
+        {step !== 'email' && (
+          <button onClick={() => { setStep('email'); setOtp(''); setError(''); }}
             style={{ background: 'none', border: 'none', color: C.steel, fontSize: 13, fontFamily: 'DM Sans', cursor: 'pointer' }}>
             Start over
           </button>

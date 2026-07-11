@@ -6,31 +6,32 @@ const TABLES = {
   customer: 'customers',
 };
 
-export async function checkAndLogin(phone, role) {
+export async function checkAndLogin(email, role) {
   const table = TABLES[role];
+  const normalizedEmail = email.trim().toLowerCase();
 
-  // Check if this number exists in a DIFFERENT role table
+  // Check if email exists in a different role table
   for (const [r, t] of Object.entries(TABLES)) {
     if (r === role) continue;
     const { data } = await supabase
       .from(t)
-      .select('id, is_logged_in')
-      .eq('phone', phone)
+      .select('id')
+      .eq('email', normalizedEmail)
       .maybeSingle();
 
     if (data) {
       return {
         success: false,
-        error: `This number is already registered as a ${r}. Please use the ${r} login instead.`,
+        error: `This email is already registered as a ${r}. Please use the ${r} login instead.`,
       };
     }
   }
 
-  // Check if this number exists in the correct role table
+  // Check if email exists in correct role table
   const { data: user } = await supabase
     .from(table)
     .select('*')
-    .eq('phone', phone)
+    .eq('email', normalizedEmail)
     .maybeSingle();
 
   if (user) {
@@ -38,67 +39,87 @@ export async function checkAndLogin(phone, role) {
     if (user.is_logged_in) {
       return {
         success: false,
-        error: `This number is already logged in on another device. Please log out from that device first.`,
+        error: `This email is already logged in on another device. Please log out from that device first.`,
       };
     }
 
-    // Mark as logged in
-    await supabase.from(table).update({ is_logged_in: true }).eq('id', user.id);
-
-    // Log activity
-    await supabase.from('activity_log').insert({
-      shop_code: user.shop_code,
-      role,
-      name: user.name,
-      phone,
-      action: 'login',
+    // Send OTP email
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: normalizedEmail,
     });
 
-    return { success: true, user: { ...user, is_logged_in: true }, isNew: false };
+    if (otpError) {
+      return { success: false, error: 'Failed to send OTP. Try again.' };
+    }
+
+    return { success: true, user, isNew: false };
   }
 
-  // Number not found — new user
+  // Email not found — new user
   return { success: true, user: null, isNew: true };
 }
 
-export async function logoutUser(phone, role) {
+export async function verifyOtp(email, token, role) {
+  const normalizedEmail = email.trim().toLowerCase();
   const table = TABLES[role];
+
+  const { error } = await supabase.auth.verifyOtp({
+    email: normalizedEmail,
+    token,
+    type: 'email',
+  });
+
+  if (error) {
+    return { success: false, error: 'Wrong code. Try again.' };
+  }
+
+  // Mark as logged in
   const { data: user } = await supabase
     .from(table)
     .select('*')
-    .eq('phone', phone)
+    .eq('email', normalizedEmail)
     .maybeSingle();
 
   if (user) {
-    await supabase.from(table).update({ is_logged_in: false }).eq('id', user.id);
+    await supabase.from(table).update({ is_logged_in: true }).eq('id', user.id);
     await supabase.from('activity_log').insert({
       shop_code: user.shop_code,
       role,
       name: user.name,
-      phone,
-      action: 'logout',
+      phone: normalizedEmail,
+      action: 'login',
     });
+    return { success: true, user };
   }
 
-  localStorage.clear();
+  return { success: false, error: 'Something went wrong. Try again.' };
 }
 
-export async function registerUser(phone, role, shopCode, details) {
-  const table = TABLES[role];
+export async function sendRegistrationOtp(email) {
+  const { error } = await supabase.auth.signInWithOtp({
+    email: email.trim().toLowerCase(),
+  });
+  if (error) return { success: false, error: 'Failed to send OTP. Try again.' };
+  return { success: true };
+}
 
-  // Check number not registered anywhere
+export async function registerUser(email, role, shopCode, details) {
+  const table = TABLES[role];
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // Check email not registered anywhere
   for (const [r, t] of Object.entries(TABLES)) {
-    const { data } = await supabase.from(t).select('id').eq('phone', phone).maybeSingle();
+    const { data } = await supabase.from(t).select('id').eq('email', normalizedEmail).maybeSingle();
     if (data) {
       return {
         success: false,
-        error: `This number is already registered as a ${r}. Use the ${r} login instead.`,
+        error: `This email is already registered as a ${r}. Use the ${r} login instead.`,
       };
     }
   }
 
   const insertData = {
-    phone,
+    email: normalizedEmail,
     shop_code: shopCode,
     is_logged_in: true,
     verified: true,
@@ -114,7 +135,6 @@ export async function registerUser(phone, role, shopCode, details) {
   const { data, error } = await supabase.from(table).insert(insertData).select().single();
   if (error) return { success: false, error: 'Something went wrong. Try again.' };
 
-  // Notify owner
   await supabase.from('notifications').insert({
     shop_code: shopCode,
     target_role: 'owner',
@@ -122,14 +142,35 @@ export async function registerUser(phone, role, shopCode, details) {
     body: `${details.name} joined using your shop code`,
   });
 
-  // Log activity
   await supabase.from('activity_log').insert({
     shop_code: shopCode,
     role,
     name: details.name,
-    phone,
+    phone: normalizedEmail,
     action: 'registered',
   });
 
   return { success: true, user: data };
+}
+
+export async function logoutUser(email, role) {
+  const table = TABLES[role];
+  const { data: user } = await supabase
+    .from(table)
+    .select('*')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (user) {
+    await supabase.from(table).update({ is_logged_in: false }).eq('id', user.id);
+    await supabase.from('activity_log').insert({
+      shop_code: user.shop_code,
+      role,
+      name: user.name,
+      phone: email,
+      action: 'logout',
+    });
+  }
+
+  localStorage.clear();
 }

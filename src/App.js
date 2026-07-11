@@ -33,9 +33,9 @@ function MainApp() {
     localStorage.setItem('user', JSON.stringify(userData));
   }
 
-  async function logout() {
+async function logout() {
     if (user && role) {
-      await logoutUser(user.phone, role);
+      await logoutUser(user.email, role);
     }
     setRole(null);
     setUser(null);

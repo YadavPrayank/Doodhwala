@@ -68,7 +68,13 @@ export default function WorkerLogin({ onLogin }) {
     setLoading(true);
     setError('');
 
-    const { error: otpError } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase() });
+    const { error: otpError } =await supabase.auth.signInWithOtp({
+  email: email.trim().toLowerCase(),
+  options: {
+    shouldCreateUser: false,
+    emailRedirectTo: null,
+  }
+});
     if (otpError) { setError('Failed to send OTP. Try again.'); setLoading(false); return; }
 
     setStep('otp');

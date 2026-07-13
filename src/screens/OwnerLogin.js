@@ -85,7 +85,13 @@ export default function OwnerLogin({ onLogin }) {
     setError('');
 
     // Send OTP first
-    const { error: otpError } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase() });
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+  email: email.trim().toLowerCase(),
+  options: {
+    shouldCreateUser: false,
+    emailRedirectTo: null,
+  }
+});
     if (otpError) { setError('Failed to send OTP. Try again.'); setLoading(false); return; }
 
     setStep('otp_register');

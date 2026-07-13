@@ -44,10 +44,13 @@ export async function checkAndLogin(email, role) {
     }
 
     // Send OTP email
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-    });
-
+   const { error: otpError } = await supabase.auth.signInWithOtp({
+  email: normalizedEmail,
+  options: {
+    shouldCreateUser: false,
+    emailRedirectTo: null,
+  }
+});
     if (otpError) {
       return { success: false, error: 'Failed to send OTP. Try again.' };
     }
@@ -97,8 +100,12 @@ export async function verifyOtp(email, token, role) {
 
 export async function sendRegistrationOtp(email) {
   const { error } = await supabase.auth.signInWithOtp({
-    email: email.trim().toLowerCase(),
-  });
+  email: email.trim().toLowerCase(),
+  options: {
+    shouldCreateUser: false,
+    emailRedirectTo: null,
+  }
+});
   if (error) return { success: false, error: 'Failed to send OTP. Try again.' };
   return { success: true };
 }
